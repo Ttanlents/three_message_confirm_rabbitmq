@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <!--加载配置文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!-- 扫描包 -->
+    <context:component-scan base-package="com.yjf" />
+
+    <!-- 定义rabbitmq connectionFactory -->
+    <rabbit:connection-factory id="connectionFactory" host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtual-host}"
+    />
+    <!--定义管理交换机、队列-->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--定义rabbitTemplate对象操作可以在代码中方便发送消息-->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+
+    <!--
+    死信队列：
+        1. 声明正常的队列(test_queue_dlx)和交换机(test_exchange_dlx)
+        2. 声明死信队列(queue_dlx)和死信交换机(exchange_dlx)
+        3. 正常队列绑定死信交换机
+            设置两个参数：
+                * x-dead-letter-exchange：死信交换机名称
+                * x-dead-letter-routing-key：发送给死信交换机的routingkey
+ -->
+
+    <!--配置业务队列-->
+    <!--消息可靠性投递（生产端）-->
+    <rabbit:queue id="test_queue_confirm" name="test_queue_confirm"></rabbit:queue>
+
+    <rabbit:direct-exchange name="test_exchange_confirm">
+        <rabbit:bindings>
+            <rabbit:binding queue="test_queue_confirm" key="confirm"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!--
+    定义监听器容器
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="none" prefetch="1" >
+        acknowledge:消息签收方式
+            none:   自动签收(消息被消费就自动签收)
+            manual: 手动签收(需要调用basicNack或basicReject方法手动签收)
+            auto:   由rabbitmq来决定是否签收(根据异常进行处理)
+        prefetch: 当多条消费者接受到多条消息一次性处理几条
+-->
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="manual" prefetch="1">   <!--1表示每次拉去一条信息-->
+        <rabbit:listener ref="qosListener" queue-names="test_queue_confirm"></rabbit:listener>
+    </rabbit:listener-container>
+
+</beans>

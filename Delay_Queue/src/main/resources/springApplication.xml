@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <!--加载配置文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!-- 扫描包 -->
+    <context:component-scan base-package="com.yjf" />
+
+    <!-- 定义rabbitmq connectionFactory -->
+    <rabbit:connection-factory id="connectionFactory" host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtual-host}"
+    />
+    <!--定义管理交换机、队列-->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--定义rabbitTemplate对象操作可以在代码中方便发送消息-->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+
+    <!--
+    死信队列：
+        1. 声明正常的队列(test_queue_dlx)和交换机(test_exchange_dlx)
+        2. 声明死信队列(queue_dlx)和死信交换机(exchange_dlx)
+        3. 正常队列绑定死信交换机
+            设置两个参数：
+                * x-dead-letter-exchange：死信交换机名称
+                * x-dead-letter-routing-key：发送给死信交换机的routingkey
+ -->
+
+    <!--配置业务队列-->
+    <rabbit:queue name="test_queue_dlx2" id="test_queue_dlx2">
+        <rabbit:queue-arguments>
+            <!--3.1 x-dead-letter-exchange：死信交换机名称-->
+            <entry key="x-dead-letter-exchange" value="exchange_dlx"/>
+
+            <!--3.2 x-dead-letter-routing-key：发送给死信交换机的routingKey-->
+            <entry key="x-dead-letter-routing-key" value="dlx.abc"/>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+
+
+
+    <!-- 2. 声明死信队列(queue_dlx)和死信交换机(exchange_dlx) -->
+    <rabbit:queue name="queue_dlx" id="queue_dlx"></rabbit:queue>
+
+    <!-- 死信交换机 -->
+    <rabbit:topic-exchange name="exchange_dlx">
+        <rabbit:bindings>
+            <rabbit:binding queue="queue_dlx" pattern="dlx.*"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="none" >  <!--手动签收-->
+        <rabbit:listener ref="dlxListener" queue-names="queue_dlx"></rabbit:listener>
+    </rabbit:listener-container>
+</beans>

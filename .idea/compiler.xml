@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="Consumer Ack" />
+        <module name="Dead_letter_Queue" />
+        <module name="Delay_Queue" />
+        <module name="Exchange_confirm" />
+        <module name="Limiting_Queue" />
+        <module name="Queue_rallback" />
+        <module name="Transcation_manager" />
+        <module name="TTL_Queue" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>
